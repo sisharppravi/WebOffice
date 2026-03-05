@@ -1,5 +1,6 @@
 **Список основных компонентов системы (сервисы)**
 
+
 **Frontend** (клиентская часть): Blazor WebAssembly (WASM)  
 
 **Backend:** Web API на ASP.NET Core Аутентификация → ASP.NET Identity (JWT или Cookie)  
