@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "UhwU4ZFxlT4=",
+  "success": true,
+  "projectFilePath": "/Users/nikklaud/Documents/University/ADP_Universitys_tasks/WebOffice/WebOffice.Api/WebOffice.Api.csproj",
+  "expectedPackageFiles": [
+    "/Users/nikklaud/.nuget/packages/microsoft.aspnetcore.openapi/9.0.8/microsoft.aspnetcore.openapi.9.0.8.nupkg.sha512",
+    "/Users/nikklaud/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
