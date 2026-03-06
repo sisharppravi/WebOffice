@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WebOffice.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cabb36b6cdda7cb886cde57d2a5d23e2ca55c88d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ea4d4f2cf77daab4679a6db198cd05c829bb7ae8")]
 [assembly: System.Reflection.AssemblyProductAttribute("WebOffice.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WebOffice.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
