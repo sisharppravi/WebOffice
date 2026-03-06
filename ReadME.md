@@ -1,7 +1,7 @@
 # Docker init
 
 <details>
-
+   
 ## Быстрый старт для разработки
    
 1. Установить Docker
@@ -34,4 +34,12 @@
       # Nginx 
       NGINX_PORT=80
 
+</details>
+
+#.NET
+
+<details>
+
+   Test
+   
 </details>
