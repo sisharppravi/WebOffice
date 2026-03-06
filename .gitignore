@@ -1,5 +1,17 @@
+# Директории сборки
 bin/
 obj/
-.idea/
 .vs/
+.vscode/
+.idea/
+.rider/
+
+# Файлы окружения
 .env
+.env.local
+.env.*.local
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
