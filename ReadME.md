@@ -1,19 +1,3 @@
-**Список основных компонентов системы (сервисы)**
-
-
-**Frontend** (клиентская часть): Blazor WebAssembly (WASM)  
-
-**Backend:** Web API на ASP.NET Core Аутентификация → ASP.NET Identity (JWT или Cookie)  
-
-**Хранилище файлов:** MinIO (S3-совместимое объектное хранилище)  
-
-**Онлайн-редактор:** OnlyOffice Document Server (Docker) Поддержка протокола WOPI (включён обязательно)  
-
-**Прокси / обратный прокси** (рекомендуется): Nginx или Traefik (для удобного https и маршрутизации)  
-
-**Браузер** → обычный веб-доступ через браузер
-
-
 ## Быстрый старт для разработки
 
 1. Установи Docker
@@ -32,3 +16,16 @@
 1. MinIO: RELEASE.2024-02-17T01-15-57Z
 2. OnlyOffie: 8.0.1
 3. Nginx: 1.27.0
+
+
+## .env файл
+# MinIO
+MINIO_ROOT_USER=admin
+MINIO_ROOT_PASSWORD=admin123
+MINIO_BUCKET=weboffice-files
+
+# OnlyOffice
+ONLYOFFICE_JWT_SECRET=78YsTwvZAo646cK0BRZn2yJYps26Wx4M7sfnvzTd0nY=
+
+# Nginx 
+NGINX_PORT=80
