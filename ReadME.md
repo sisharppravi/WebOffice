@@ -1,3 +1,8 @@
+# Web Office
+<img width="1939" height="804" alt="image" src="https://github.com/user-attachments/assets/dd759b6a-192f-4b17-87df-ae464023c856" />
+
+Система онлайн-редактирования офисных документов с интеграцией OnlyOffice через WOPI
+
 # Docker init
 
 <details>
