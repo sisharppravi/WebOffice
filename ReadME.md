@@ -1,5 +1,6 @@
 # Web Office
-<img width="1939" height="804" alt="image" src="https://github.com/user-attachments/assets/dd759b6a-192f-4b17-87df-ae464023c856" />
+<img width="1734" height="718" alt="image" src="https://github.com/user-attachments/assets/83f19271-dbcd-4ab8-897b-7e691bd24509" />
+
 
 Система онлайн-редактирования офисных документов с интеграцией OnlyOffice через WOPI
 
