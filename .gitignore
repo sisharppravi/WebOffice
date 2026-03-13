@@ -28,3 +28,6 @@ obj/
 *.suo
 *.pdb
 *.dll
+
+
+WebOffice.Api/users.db
