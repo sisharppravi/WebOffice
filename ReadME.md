@@ -46,6 +46,13 @@
 
 <details>
 
-   Test
-   
-</details>
+1. MinIO: RELEASE.2024-02-17T01-15-57Z
+2. OnlyOffie: 8.0.1
+3. Nginx: 1.27.0
+
+
+Перед началом работы выполнить команду dotnet `ef database update`
+
+Для работы со swagger в браузере перейти на https://localhost:7130/swagger
+
+
