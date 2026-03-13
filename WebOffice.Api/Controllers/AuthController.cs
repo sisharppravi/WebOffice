@@ -2,6 +2,7 @@ using bsckend.Models.DTOs.AuthDTOs;
 using bsckend.Models.User;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using bsckend.Services;
 
 namespace bsckend.Controllers;
 
@@ -11,11 +12,19 @@ public class AuthController: ControllerBase
 {
     private readonly ILogger<AuthController> _logger;
     private readonly UserManager<UserModel> _userManager;
+    private readonly SignInManager<UserModel> _signInManager;
+    private readonly JwtService _jwtService;
     
-    public AuthController(ILogger<AuthController> logger, UserManager<UserModel> userManager)
+    public AuthController(
+        ILogger<AuthController> logger, 
+        UserManager<UserModel> userManager,
+        SignInManager<UserModel> signInManager,
+        JwtService jwtService)
     {
         _logger = logger;
         _userManager = userManager;
+        _signInManager = signInManager;
+        _jwtService = jwtService;
     }
 
     [HttpPost("register")]
@@ -47,6 +56,31 @@ public class AuthController: ControllerBase
         {
             message = "User created"
         });
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    {
+        _logger.LogInformation("Login attempt for user: {Login}", dto.Login);
+
+        var user = await _userManager.FindByNameAsync(dto.Login);
+        if (user == null)
+        {
+            _logger.LogWarning("Login failed: user {Login} not found", dto.Login);
+            return Unauthorized(new { message = "Invalid login or password" });
+        }
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Login failed: invalid password for user {Login}", dto.Login);
+            return Unauthorized(new { message = "Invalid login or password" });
+        }
+
+        var token = await _jwtService.GenerateTokenAsync(user);
+        _logger.LogInformation("User {Login} successfully logged in", dto.Login);
+
+        return Ok(new { token });
     }
     
 }
