@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,11 @@ builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddMinio(configureSource => configureSource
+    .WithEndpoint("localhost:9000")
+    .WithCredentials("admin", "admin123") // Твой новый пароль из .env
+    .WithSSL(false));
 
 var app = builder.Build();
 
