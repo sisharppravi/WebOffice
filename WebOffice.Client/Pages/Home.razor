@@ -1,7 +1,178 @@
 ﻿@page "/"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Register / Login</PageTitle>
 
-<h1>Hello, world!</h1>
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
+    <h3>@(_showLogin ? "Login" : "Register")</h3>
 
-Welcome to your new app.
+    <div class="mb-3">
+        <button class="btn btn-outline-secondary me-2" @onclick="() => ToggleMode(false)" disabled="@(!_showLogin)">Register</button>
+        <button class="btn btn-outline-secondary" @onclick="() => ToggleMode(true)" disabled="@(_showLogin)">Login</button>
+    </div>
+
+    <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        @if (!_showLogin)
+        {
+            <EditForm Model="_registerModel" OnValidSubmit="HandleRegisterSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Login</label>
+                    <InputText class="form-control" @bind-Value="_registerModel.Login" />
+                    <ValidationMessage For="() => _registerModel.Login" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <InputText type="password" class="form-control" @bind-Value="_registerModel.Password" />
+                    <ValidationMessage For="() => _registerModel.Password" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Register</button>
+            </EditForm>
+        }
+        else
+        {
+            <EditForm Model="_loginModel" OnValidSubmit="HandleLoginSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Login</label>
+                    <InputText class="form-control" @bind-Value="_loginModel.Login" />
+                    <ValidationMessage For="() => _loginModel.Login" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <InputText type="password" class="form-control" @bind-Value="_loginModel.Password" />
+                    <ValidationMessage For="() => _loginModel.Password" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Login</button>
+            </EditForm>
+        }
+    </div>
+</div>
+
+@code {
+    private const string ApiBase = "https://localhost:7130/"; // измените при необходимости
+    private RegisterModel _registerModel = new();
+    private LoginModel _loginModel = new();
+    private string? _successMessage;
+    private string? _errorMessage;
+    private int? _statusCode;
+    private string? _responseBody;
+    private string? _token;
+    private bool _showLogin;
+
+    private void ToggleMode(bool toLogin)
+    {
+        _showLogin = toLogin;
+        ClearMessages();
+    }
+
+    private async Task HandleRegisterSubmit()
+    {
+        ClearMessages();
+        try
+        {
+            var resp = await Http.PostAsJsonAsync($"{ApiBase}api/auth/register", _registerModel);
+            _statusCode = (int)resp.StatusCode;
+            _responseBody = await resp.Content.ReadAsStringAsync();
+            if (resp.IsSuccessStatusCode)
+            {
+                _successMessage = "Registration successful. You can now login.";
+                _registerModel = new RegisterModel();
+            }
+            else
+            {
+                _errorMessage = $"Registration failed (HTTP {_statusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task HandleLoginSubmit()
+    {
+        ClearMessages();
+        try
+        {
+            var resp = await Http.PostAsJsonAsync($"{ApiBase}api/auth/login", _loginModel);
+            _statusCode = (int)resp.StatusCode;
+            _responseBody = await resp.Content.ReadAsStringAsync();
+
+            if (resp.IsSuccessStatusCode)
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(_responseBody ?? "{}");
+                    if (doc.RootElement.TryGetProperty("token", out var tokenElement))
+                    {
+                        _token = tokenElement.GetString();
+                        if (!string.IsNullOrEmpty(_token))
+                        {
+                            await JS.InvokeVoidAsync("localStorage.setItem", "authToken", _token);
+                        }
+
+                        _successMessage = "Login successful.";
+                    }
+                    else
+                    {
+                        _successMessage = "Login successful (no token in response).";
+                    }
+                }
+                catch
+                {
+                    _successMessage = "Login successful (unable to parse response body).";
+                }
+
+                _loginModel = new LoginModel();
+            }
+            else
+            {
+                _errorMessage = $"Login failed (HTTP {_statusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        _successMessage = null;
+        _errorMessage = null;
+        _statusCode = null;
+        _responseBody = null;
+        _token = null;
+    }
+
+    public class RegisterModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Login { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Login { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+    }
+}
