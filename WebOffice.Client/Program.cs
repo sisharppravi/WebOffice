@@ -10,5 +10,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 // Регистрируем AuthService, он использует HttpClient и IJSRuntime
 builder.Services.AddScoped<AuthService>();
+// Добавляем DocumentService
+builder.Services.AddScoped<DocumentService>();
 
 await builder.Build().RunAsync();

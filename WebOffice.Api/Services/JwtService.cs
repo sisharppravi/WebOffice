@@ -20,14 +20,21 @@ public class JwtService
 
     public async Task<string> GenerateTokenAsync(UserModel user)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg["Jwt:Key"]));
+        var keyStr = _cfg["Jwt:Key"] ?? string.Empty;
+        if (string.IsNullOrEmpty(keyStr)) throw new InvalidOperationException("Jwt:Key is not configured");
+
+        var issuer = _cfg["Jwt:Issuer"] ?? "";
+        var audience = _cfg["Jwt:Audience"] ?? "";
+        var expiry = int.TryParse(_cfg["Jwt:ExpiryMinutes"], out var m) ? m : 60;
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email ?? ""),
-            new Claim("UserName", user.UserName ?? "")
+            new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+            new Claim("UserName", user.UserName ?? string.Empty)
         };
 
         var userRoles = await _userManager.GetRolesAsync(user);
@@ -35,10 +42,10 @@ public class JwtService
             claims.Add(new Claim(ClaimTypes.Role, role));
 
         var token = new JwtSecurityToken(
-            issuer: _cfg["Jwt:Issuer"],
-            audience: _cfg["Jwt:Audience"],
+            issuer: issuer,
+            audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(int.Parse(_cfg["Jwt:ExpiryMinutes"] ?? "60")),
+            expires: DateTime.UtcNow.AddMinutes(expiry),
             signingCredentials: creds
         );
 

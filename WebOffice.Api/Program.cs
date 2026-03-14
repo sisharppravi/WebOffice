@@ -11,6 +11,9 @@ using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Force listening URL to 7130 in development if not overridden
+builder.WebHost.UseUrls("http://localhost:7130");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite("Data Source=users.db"));
 
@@ -76,6 +79,36 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await DatabaseInitializer.InitializeAsync(db);
+
+    // Проверка и создание бакета documents в MinIO при старте
+    try
+    {
+        var minio = scope.ServiceProvider.GetRequiredService<Minio.IMinioClient>();
+        var bucketName = scope.ServiceProvider.GetRequiredService<IConfiguration>()["Minio:Bucket"] ?? "documents";
+        try
+        {
+            var existsArgs = new Minio.DataModel.Args.BucketExistsArgs().WithBucket(bucketName);
+            var exists = await minio.BucketExistsAsync(existsArgs);
+            if (!exists)
+            {
+                var makeArgs = new Minio.DataModel.Args.MakeBucketArgs().WithBucket(bucketName);
+                await minio.MakeBucketAsync(makeArgs);
+                Console.WriteLine($"MinIO: created bucket '{bucketName}' on startup.");
+            }
+            else
+            {
+                Console.WriteLine($"MinIO: bucket '{bucketName}' already exists.");
+            }
+        }
+        catch (Exception mex)
+        {
+            Console.WriteLine($"MinIO startup check failed: {mex}");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"MinIO client not available at startup: {ex.Message}");
+    }
 }
 
 app.UseSwagger();

@@ -1,7 +1,10 @@
 ﻿@page "/"
 @using WebOffice.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
 @inject AuthService AuthSvc
+@inject DocumentService DocSvc
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
 <PageTitle>Register / Login</PageTitle>
 
@@ -11,7 +14,46 @@
         <div class="text-center">
             <h3>Welcome, @_currentUser</h3>
             <p>You are logged in.</p>
-            <button class="btn btn-outline-danger" @onclick="Logout">Logout</button>
+            <button class="btn btn-outline-danger mb-3" @onclick="Logout">Logout</button>
+
+            <div style="width: 480px; text-align:left;">
+                <h5>Your documents</h5>
+
+                <div class="mb-3">
+                    <InputFile OnChange="OnInputFileChange" />
+                    <button class="btn btn-sm btn-secondary ms-2" @onclick="LoadFiles">Refresh</button>
+                    <button class="btn btn-sm btn-success ms-2" @onclick="CreateDocument">Create Document</button>
+                </div>
+
+                @if (_loadingFiles)
+                {
+                    <div>Loading...</div>
+                }
+                else if (_files != null && _files.Count > 0)
+                {
+                    <ul class="list-group">
+                        @foreach (var f in _files)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>@f</div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditFile(f)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteFile(f)">Delete</button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div>No documents found.</div>
+                }
+
+                @if (!string.IsNullOrEmpty(_docMessage))
+                {
+                    <div class="mt-2 alert alert-info">@_docMessage</div>
+                }
+            </div>
         </div>
     }
     else
@@ -101,13 +143,46 @@
     private bool _showLogin;
     private string? _currentUser;
 
+    // new: documents
+    private List<string>? _files;
+    private bool _loadingFiles = false;
+    private string? _docMessage;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _currentUser = await AuthSvc.GetCurrentUserAsync();
+            if (!string.IsNullOrEmpty(_currentUser))
+            {
+                await LoadFiles();
+            }
             StateHasChanged();
         }
+    }
+
+    private async Task LoadFiles()
+    {
+        _loadingFiles = true;
+        _docMessage = null;
+        try
+        {
+            var (status, body, files) = await DocSvc.GetUserFilesAsync();
+            if (status >= 200 && status < 300)
+            {
+                _files = files ?? new List<string>();
+            }
+            else
+            {
+                _docMessage = $"Error loading files (HTTP {status}): {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _docMessage = ex.Message;
+        }
+        _loadingFiles = false;
+        StateHasChanged();
     }
 
     private void ToggleMode(bool toLogin)
@@ -155,6 +230,7 @@
                 _currentUser = _loginModel.Login;
                 _successMessage = "Login successful.";
                 _loginModel = new LoginModel();
+                await LoadFiles();
             }
             else
             {
@@ -171,6 +247,7 @@
     {
         await AuthSvc.LogoutAsync();
         _currentUser = null;
+        _files = null;
         ClearMessages();
         StateHasChanged();
     }
@@ -182,6 +259,99 @@
         _statusCode = null;
         _responseBody = null;
         _token = null;
+        _docMessage = null;
+    }
+
+    private async Task OnFileSelected(ChangeEventArgs e)
+    {
+        // removed - replaced by InputFile handler
+        await Task.CompletedTask;
+    }
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        _docMessage = null;
+        try
+        {
+            var current = await AuthSvc.GetCurrentUserAsync();
+            if (string.IsNullOrEmpty(current))
+            {
+                _docMessage = "You are not logged in. Please login before uploading files.";
+                return;
+            }
+
+            var file = e.File;
+            // Ограничение размера (например 50 MB)
+            const long maxFileSize = 50 * 1024 * 1024;
+            using var stream = file.OpenReadStream(maxFileSize);
+            var (status, body) = await DocSvc.UploadFileAsync(stream, file.Name, file.ContentType ?? "application/octet-stream", file.Size);
+            if (status >= 200 && status < 300)
+            {
+                _docMessage = "Upload successful.";
+                await LoadFiles();
+            }
+            else
+            {
+                _docMessage = $"Upload failed (HTTP {status}): {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _docMessage = ex.Message;
+        }
+    }
+
+    private async Task DeleteFile(string fileName)
+    {
+        _docMessage = null;
+        try
+        {
+            var (status, body) = await DocSvc.DeleteFileAsync(fileName);
+            if (status >= 200 && status < 300)
+            {
+                _docMessage = "Deleted";
+                await LoadFiles();
+            }
+            else
+            {
+                _docMessage = $"Delete failed (HTTP {status}): {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _docMessage = ex.Message;
+        }
+    }
+
+    private async Task EditFile(string fileName)
+    {
+        // For now: attempt to download and open in new tab as blob
+        try
+        {
+            var user = await AuthSvc.GetCurrentUserAsync();
+            var apiBase = "http://localhost:7130"; // adjust if needed
+            var url = $"{apiBase}/onlyoffice/edit?fileName={Uri.EscapeDataString(fileName)}" + (string.IsNullOrEmpty(user) ? string.Empty : $"&userId={Uri.EscapeDataString(user)}");
+            await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+        catch (Exception ex)
+        {
+            _docMessage = ex.Message;
+        }
+    }
+
+    private async Task CreateDocument()
+    {
+        try
+        {
+            var user = await AuthSvc.GetCurrentUserAsync();
+            var apiBase = "http://localhost:7130";
+            var url = $"{apiBase}/onlyoffice/create" + (string.IsNullOrEmpty(user) ? string.Empty : $"?userId={Uri.EscapeDataString(user)}");
+            await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+        catch (Exception ex)
+        {
+            _docMessage = ex.Message;
+        }
     }
 
     public class RegisterModel
