@@ -30,6 +30,12 @@ public class AuthController: ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid register dto: {Errors}", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return BadRequest(ModelState);
+        }
+
         _logger.LogInformation("Registering new user with login: {Login}",  dto.Login);
         var user = new UserModel
         {
@@ -61,6 +67,12 @@ public class AuthController: ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Invalid login dto: {Errors}", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return BadRequest(ModelState);
+        }
+
         _logger.LogInformation("Login attempt for user: {Login}", dto.Login);
 
         var user = await _userManager.FindByNameAsync(dto.Login);

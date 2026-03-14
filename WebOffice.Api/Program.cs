@@ -18,6 +18,17 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// CORS - разрешаем запросы с клиентского приложения (для разработки)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // JWT Configuration
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrEmpty(jwtKey))
@@ -65,6 +76,8 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseRouting();
+// Включаем CORS (используем политику AllowAll)
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
