@@ -31,3 +31,7 @@ obj/
 
 
 WebOffice.Api/users.db
+
+*.db
+*.sqlite
+*.sqlite3
