@@ -1,5 +1,5 @@
 @page "/documents"
-@using WebOffice.Client.Services   @* ← обязательно для AuthService *@
+@using WebOffice.Client.Services  
 @inject HttpClient HttpClient
 @inject AuthService AuthSvc
 @inject IJSRuntime JS
@@ -11,14 +11,17 @@
     <input @bind="newFileName" placeholder="Введите название документа (например: report.docx)"
            class="form-control" />
     <button class="btn btn-primary" @onclick="CreateDocument">Создать документ</button>
-
-    <!-- Новая кнопка Init DB -->
-    <button class="btn btn-warning ms-2" @onclick="InitDb">Init DB</button>
+    
+    <button class="btn btn-warning ms-2" 
+            @onclick="InitDb" 
+            disabled="@isInitInProgress">
+        @(isInitInProgress ? "Инициализация..." : "Init DB")
+    </button>
 </div>
 
 @if (loading)
 {
-    <p>Загрузка...</p>
+    <p>Загрузка документов...</p>
 }
 else if (files.Count == 0)
 {
@@ -53,12 +56,23 @@ else
     <div class="alert alert-danger mt-3">@errorMessage</div>
 }
 
+@if (!string.IsNullOrEmpty(initStatus))
+{
+    <div class="alert @(initSuccess ? "alert-success" : "alert-danger") mt-3">
+        @initStatus
+    </div>
+}
+
 @code {
     private List<string> files = new();
     private string? newFileName;
     private string? userId;
     private bool loading = true;
     private string? errorMessage;
+
+    private bool isInitInProgress = false;
+    private string? initStatus;
+    private bool initSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,7 +96,7 @@ else
         }
         catch (Exception ex)
         {
-            errorMessage = $"Не удалось загрузить список: {ex.Message}\nПроверь, запущен ли API на https://localhost:7130";
+            errorMessage = $"Не удалось загрузить список: {ex.Message}";
         }
         finally
         {
@@ -97,7 +111,7 @@ else
 
         try
         {
-            var response = await HttpClient.PostAsync($"api/storage/create?userId={userId}&fileName={newFileName}", null);
+            var response = await HttpClient.PostAsync($"api/storage/create?userId={userId}&fileName={Uri.EscapeDataString(newFileName!)}", null);
             if (response.IsSuccessStatusCode)
             {
                 files.Add(newFileName!);
@@ -106,7 +120,7 @@ else
             }
             else
             {
-                errorMessage = $"Ошибка создания: {response.StatusCode}";
+                errorMessage = $"Ошибка создания: {response.StatusCode} — {await response.Content.ReadAsStringAsync()}";
             }
         }
         catch (Exception ex)
@@ -119,7 +133,7 @@ else
     {
         try
         {
-            var response = await HttpClient.DeleteAsync($"api/storage/delete?userId={userId}&fileName={file}");
+            var response = await HttpClient.DeleteAsync($"api/storage/delete?userId={userId}&fileName={Uri.EscapeDataString(file)}");
             if (response.IsSuccessStatusCode)
             {
                 files.Remove(file);
@@ -154,24 +168,40 @@ else
             errorMessage = $"Ошибка открытия редактора: {ex.Message}";
         }
     }
+
     private async Task InitDb()
     {
+        isInitInProgress = true;
+        initStatus = null;
+        initSuccess = false;
+        errorMessage = null;
+
         try
         {
+           
             var response = await HttpClient.PostAsync("api/initdb", null);
+
             if (response.IsSuccessStatusCode)
             {
-                errorMessage = null;
-                await LoadFiles(); // после инициализации можно обновить список
+                initStatus = "База данных успешно инициализирована";
+                initSuccess = true;
+                await LoadFiles();
             }
             else
             {
-                errorMessage = $"Ошибка Init DB: {response.StatusCode}";
+                initStatus = $"Ошибка инициализации: {response.StatusCode} — {await response.Content.ReadAsStringAsync()}";
+                initSuccess = false;
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Ошибка Init DB: {ex.Message}";
+            initStatus = $"Ошибка при вызове Init DB: {ex.Message}";
+            initSuccess = false;
+        }
+        finally
+        {
+            isInitInProgress = false;
+            StateHasChanged();
         }
     }
 }
