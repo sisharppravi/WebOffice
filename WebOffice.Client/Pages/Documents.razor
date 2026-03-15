@@ -1,0 +1,113 @@
+@page "/documents"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<h3>Documents</h3>
+
+<div class="mb-3">
+    <input @bind="newFileName" placeholder="Введите название документа" class="form-control w-25 d-inline-block me-2" />
+    <button class="btn btn-primary" @onclick="CreateDocument">Создать документ</button>
+</div>
+
+@if (files.Count == 0)
+{
+    <p>Документы отсутствуют</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var file in files)
+            {
+                <tr>
+                    <td>@file</td>
+                    <td>
+                        <button class="btn btn-sm btn-success me-2" @onclick="() => EditDocument(file)">Изменить</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteDocument(file)">Удалить</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (editorVisible)
+{
+    <h4>Редактор: @currentFile</h4>
+    <div id="editor" style="height:800px"></div>
+}
+
+@code {
+    private List<string> files = new();
+    private string? newFileName;
+    private string userId = "testuser"; // TODO: подтягивать текущего пользователя
+    private bool editorVisible = false;
+    private string? currentFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFiles();
+    }
+
+    private async Task LoadFiles()
+    {
+        files = await Http.GetFromJsonAsync<List<string>>($"api/storage/list?userId={userId}") ?? new List<string>();
+    }
+
+    private async Task CreateDocument()
+    {
+        if (string.IsNullOrWhiteSpace(newFileName))
+            return;
+
+        await Http.PostAsync($"api/storage/create?userId={userId}&fileName={newFileName}", null);
+        files.Add(newFileName);
+        newFileName = string.Empty;
+    }
+
+    private async Task DeleteDocument(string file)
+    {
+        // Удаление через Minio API (надо сделать эндпоинт delete)
+        var resp = await Http.DeleteAsync($"api/storage/delete?userId={userId}&fileName={file}");
+        if (resp.IsSuccessStatusCode)
+        {
+            files.Remove(file);
+            StateHasChanged();
+        }
+    }
+
+    private async Task EditDocument(string file)
+    {
+        var editorConfig = await Http.GetFromJsonAsync<EditorConfig>($"api/storage/editor-config?userId={userId}&fileName={file}");
+        currentFile = file;
+        editorVisible = true;
+
+        await JS.InvokeVoidAsync("openEditor", editorConfig);
+    }
+
+    // Модели для десериализации editor-config
+    public class EditorConfig
+    {
+        public DocumentInfo document { get; set; } = new();
+        public EditorInfo editorConfig { get; set; } = new();
+    }
+
+    public class DocumentInfo
+    {
+        public string fileType { get; set; } = "";
+        public string key { get; set; } = "";
+        public string title { get; set; } = "";
+        public string url { get; set; } = "";
+    }
+
+    public class EditorInfo
+    {
+        public string callbackUrl { get; set; } = "";
+    }
+}

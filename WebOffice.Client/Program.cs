@@ -11,4 +11,5 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 // Регистрируем AuthService, он использует HttpClient и IJSRuntime
 builder.Services.AddScoped<AuthService>();
 
+
 await builder.Build().RunAsync();
