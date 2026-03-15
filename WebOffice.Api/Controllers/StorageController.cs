@@ -172,45 +172,42 @@ public class StorageController : ControllerBase
     }
 
     [HttpGet("editor-config")]
-    public async Task<IActionResult> GetEditorConfig(string fileName, string userId)
+public async Task<IActionResult> GetEditorConfig(string fileName, string userId)
+{
+    try
     {
-        try
+        string objectName = $"{userId}/{fileName}";
+
+        var url = await _minioClient.PresignedGetObjectAsync(
+            new PresignedGetObjectArgs()
+                .WithBucket(BucketName)
+                .WithObject(objectName)
+                .WithExpiry(60 * 60)
+        );
+
+        var config = new
         {
-            string objectName = $"{userId}/{fileName}";
-
-            _logger.LogInformation("Generating OnlyOffice config for file {File} user {User}", fileName, userId);
-
-            var url = await _minioClient.PresignedGetObjectAsync(
-                new PresignedGetObjectArgs()
-                    .WithBucket(BucketName)
-                    .WithObject(objectName)
-                    .WithExpiry(60 * 60)
-            );
-
-            var config = new
+            document = new
             {
-                document = new
-                {
-                    fileType = "docx",
-                    key = $"{userId}-{fileName}",
-                    title = fileName,
-                    url = url
-                },
-                editorConfig = new
-                {
-                    callbackUrl =
-                        $"http://localhost:5000/api/storage/callback?fileName={fileName}&userId={userId}"
-                }
-            };
+                fileType = "docx",
+                key = $"{userId}-{fileName}-{DateTime.UtcNow.Ticks}", // уникальный ключ
+                title = fileName,
+                url = url
+            },
+            editorConfig = new
+            {
+                callbackUrl = $"https://localhost:7130/api/storage/callback?fileName={fileName}&userId={userId}"  // ← ИСПРАВЛЕНО на твой порт API
+            }
+        };
 
-            return Ok(config);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating editor config for file {File}", fileName);
-            return BadRequest();
-        }
+        return Ok(config);
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error generating editor config");
+        return BadRequest(ex.Message);
+    }
+}
 
     [HttpGet("list")]
     public async Task<IActionResult> List(string userId)

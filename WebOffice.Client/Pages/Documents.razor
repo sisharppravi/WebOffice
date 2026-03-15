@@ -1,18 +1,25 @@
 @page "/documents"
-@inject HttpClient Http
+@using WebOffice.Client.Services   @* ← обязательно для AuthService *@
+@inject HttpClient HttpClient
+@inject AuthService AuthSvc
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
 
-<h3>Documents</h3>
+<h3>Мои документы</h3>
 
 <div class="mb-3">
-    <input @bind="newFileName" placeholder="Введите название документа" class="form-control w-25 d-inline-block me-2" />
+    <input @bind="newFileName" placeholder="Введите название документа (например: report.docx)" 
+           class="form-control w-25 d-inline-block me-2" />
     <button class="btn btn-primary" @onclick="CreateDocument">Создать документ</button>
 </div>
 
-@if (files.Count == 0)
+@if (loading)
 {
-    <p>Документы отсутствуют</p>
+    <p>Загрузка...</p>
+}
+else if (files.Count == 0)
+{
+    <p class="text-muted">Документы отсутствуют. Создайте первый!</p>
 }
 else
 {
@@ -40,58 +47,119 @@ else
 
 @if (editorVisible)
 {
-    <h4>Редактор: @currentFile</h4>
-    <div id="editor" style="height:800px"></div>
+    <h4>Редактор OnlyOffice: @currentFile</h4>
+    <div id="editor" style="height:800px; border:1px solid #ccc;"></div>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
 }
 
 @code {
     private List<string> files = new();
     private string? newFileName;
-    private string userId = "testuser"; // TODO: подтягивать текущего пользователя
+    private string? userId;
     private bool editorVisible = false;
     private string? currentFile;
+    private bool loading = true;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
+        userId = await AuthSvc.GetCurrentUserAsync();
+        if (string.IsNullOrEmpty(userId))
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
         await LoadFiles();
     }
 
     private async Task LoadFiles()
     {
-        files = await Http.GetFromJsonAsync<List<string>>($"api/storage/list?userId={userId}") ?? new List<string>();
+        try
+        {
+            errorMessage = null;
+            loading = true;
+            files = await HttpClient.GetFromJsonAsync<List<string>>($"api/storage/list?userId={userId}") ?? new();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить список: {ex.Message}\nПроверь, запущен ли API на https://localhost:7130";
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task CreateDocument()
     {
-        if (string.IsNullOrWhiteSpace(newFileName))
-            return;
+        if (string.IsNullOrWhiteSpace(newFileName)) return;
 
-        await Http.PostAsync($"api/storage/create?userId={userId}&fileName={newFileName}", null);
-        files.Add(newFileName);
-        newFileName = string.Empty;
+        try
+        {
+            var response = await HttpClient.PostAsync($"api/storage/create?userId={userId}&fileName={newFileName}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                files.Add(newFileName!);
+                newFileName = string.Empty;
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = $"Ошибка создания: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка: {ex.Message}";
+        }
     }
 
     private async Task DeleteDocument(string file)
     {
-        // Удаление через Minio API (надо сделать эндпоинт delete)
-        var resp = await Http.DeleteAsync($"api/storage/delete?userId={userId}&fileName={file}");
-        if (resp.IsSuccessStatusCode)
+        try
         {
-            files.Remove(file);
-            StateHasChanged();
+            var response = await HttpClient.DeleteAsync($"api/storage/delete?userId={userId}&fileName={file}");
+            if (response.IsSuccessStatusCode)
+            {
+                files.Remove(file);
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = $"Не удалось удалить: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
         }
     }
 
     private async Task EditDocument(string file)
     {
-        var editorConfig = await Http.GetFromJsonAsync<EditorConfig>($"api/storage/editor-config?userId={userId}&fileName={file}");
-        currentFile = file;
-        editorVisible = true;
+        try
+        {
+            var editorConfig = await HttpClient.GetFromJsonAsync<EditorConfig>($"api/storage/editor-config?userId={userId}&fileName={file}");
+            if (editorConfig == null) throw new Exception("Не удалось получить конфиг OnlyOffice");
 
-        await JS.InvokeVoidAsync("openEditor", editorConfig);
+            currentFile = file;
+            editorVisible = true;
+            StateHasChanged();
+
+            await JS.InvokeVoidAsync("openEditor", editorConfig);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка открытия редактора: {ex.Message}";
+        }
     }
 
-    // Модели для десериализации editor-config
     public class EditorConfig
     {
         public DocumentInfo document { get; set; } = new();
