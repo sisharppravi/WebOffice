@@ -1,6 +1,7 @@
 @page "/register"
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject NavigationManager NavigationManager
 
 <PageTitle>Register / Login</PageTitle>
 
@@ -80,7 +81,7 @@ else
 }
 
 @code {
-    private const string ApiBase = "https://localhost:7130/"; // измените при необходимости
+    private const string ApiBase = "/api/"; // через Nginx прокси
     private RegisterModel registerModel = new();
     private LoginModel loginModel = new();
     private string? successMessage;
@@ -93,10 +94,7 @@ else
     private void ToggleMode(bool toLogin)
     {
         showLogin = toLogin;
-        successMessage = null;
-        errorMessage = null;
-        statusCode = null;
-        responseBody = null;
+        ClearMessages();
     }
 
     private async Task HandleRegisterSubmit()
@@ -104,13 +102,15 @@ else
         ClearMessages();
         try
         {
-            var resp = await Http.PostAsJsonAsync($"{ApiBase}api/auth/register", registerModel);
+            var resp = await Http.PostAsJsonAsync($"{ApiBase}auth/register", registerModel);
             statusCode = (int)resp.StatusCode;
             responseBody = await resp.Content.ReadAsStringAsync();
+
             if (resp.IsSuccessStatusCode)
             {
-                successMessage = "Registration successful. You can now login.";
+                successMessage = "Registration successful. Redirecting to login...";
                 registerModel = new RegisterModel();
+                showLogin = true;
             }
             else
             {
@@ -128,38 +128,40 @@ else
         ClearMessages();
         try
         {
-            var resp = await Http.PostAsJsonAsync($"{ApiBase}api/auth/login", loginModel);
+            var resp = await Http.PostAsJsonAsync($"{ApiBase}auth/login", loginModel);
             statusCode = (int)resp.StatusCode;
             responseBody = await resp.Content.ReadAsStringAsync();
 
             if (resp.IsSuccessStatusCode)
             {
-                // try to extract token from JSON response
-                try
+                // Извлекаем токен из ответа
+                using var doc = System.Text.Json.JsonDocument.Parse(responseBody ?? "{}");
+                if (doc.RootElement.TryGetProperty("token", out var tokenElement))
                 {
-                    using var doc = System.Text.Json.JsonDocument.Parse(responseBody ?? "{}");
-                    if (doc.RootElement.TryGetProperty("token", out var tokenElement))
+                    token = tokenElement.GetString();
+
+                    if (!string.IsNullOrEmpty(token))
                     {
-                        token = tokenElement.GetString();
-                        // save token to localStorage so client can use it
-                        if (!string.IsNullOrEmpty(token))
+                        // Сохраняем токен в localStorage
+                        await JS.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+
+                        // Извлекаем userId из JWT (sub)
+                        var payload = ParseJwtPayload(token);
+                        if (payload.TryGetValue("sub", out var userId))
                         {
-                            await JS.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+                            await JS.InvokeVoidAsync("localStorage.setItem", "userId", userId);
                         }
 
-                        successMessage = "Login successful.";
+                        successMessage = "Login successful. Redirecting to documents...";
+                        loginModel = new LoginModel();
+
+                        // Редирект на страницу документов
+                        NavigationManager.NavigateTo("/documents", true);
+                        return;
                     }
-                    else
-                    {
-                        successMessage = "Login successful (no token in response).";
-                    }
-                }
-                catch
-                {
-                    successMessage = "Login successful (unable to parse response body).";
                 }
 
-                loginModel = new LoginModel();
+                successMessage = "Login successful, but token not found.";
             }
             else
             {
@@ -179,6 +181,21 @@ else
         statusCode = null;
         responseBody = null;
         token = null;
+    }
+
+    /// <summary>
+    /// Извлекает payload JWT и возвращает словарь
+    /// </summary>
+    private static Dictionary<string, string> ParseJwtPayload(string jwt)
+    {
+        var parts = jwt.Split('.');
+        if (parts.Length != 3) return new();
+
+        string payload = parts[1];
+        payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+        var bytes = Convert.FromBase64String(payload);
+        var json = System.Text.Json.JsonDocument.Parse(bytes);
+        return json.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
     }
 
     public class RegisterModel

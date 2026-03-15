@@ -1,31 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebOffice.Client</title>
+    <title>WebOffice</title>
     <base href="/" />
-    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="css/app.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="WebOffice.Client.styles.css" rel="stylesheet" />
+    <link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
 </head>
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="loading">Загрузка...</div>
     </div>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
-    </div>
+    <!-- ==================== ONLYOFFICE ==================== -->
+    <!-- Меняй порт 8080 на тот, который указал в docker run -->
+    <script type="text/javascript" src="http://localhost:8080/web-apps/apps/api/documents/api.js"></script>
+
+    <script>
+        window.openDocumentEditor = function (url) {
+            window.open(url, "_blank", "noopener,noreferrer");
+        };
+
+        // Глобальная функция, которую вызывает Blazor
+        window.openEditor = function (config) {
+            if (!window.DocsAPI) {
+                console.error("DocsAPI не загружен!");
+                return;
+            }
+
+            new DocsAPI.DocEditor("editor", {
+                document: config.document,
+                documentType: config.documentType || "word",
+                editorConfig: config.editorConfig,
+                token: config.token,
+                height: "800px"
+            });
+        };
+    </script>
+    <!-- ==================================================== -->
+
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 
