@@ -11,6 +11,9 @@
     <input @bind="newFileName" placeholder="Введите название документа (например: report.docx)"
            class="form-control" />
     <button class="btn btn-primary" @onclick="CreateDocument">Создать документ</button>
+
+    <!-- Новая кнопка Init DB -->
+    <button class="btn btn-warning ms-2" @onclick="InitDb">Init DB</button>
 </div>
 
 @if (loading)
@@ -149,6 +152,26 @@ else
         catch (Exception ex)
         {
             errorMessage = $"Ошибка открытия редактора: {ex.Message}";
+        }
+    }
+    private async Task InitDb()
+    {
+        try
+        {
+            var response = await HttpClient.PostAsync("api/initdb", null);
+            if (response.IsSuccessStatusCode)
+            {
+                errorMessage = null;
+                await LoadFiles(); // после инициализации можно обновить список
+            }
+            else
+            {
+                errorMessage = $"Ошибка Init DB: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка Init DB: {ex.Message}";
         }
     }
 }
