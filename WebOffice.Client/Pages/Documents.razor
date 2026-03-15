@@ -7,9 +7,9 @@
 
 <h3>Мои документы</h3>
 
-<div class="mb-3">
-    <input @bind="newFileName" placeholder="Введите название документа (например: report.docx)" 
-           class="form-control w-25 d-inline-block me-2" />
+<div class="documents-toolbar mb-3">
+    <input @bind="newFileName" placeholder="Введите название документа (например: report.docx)"
+           class="form-control" />
     <button class="btn btn-primary" @onclick="CreateDocument">Создать документ</button>
 </div>
 
@@ -23,7 +23,7 @@ else if (files.Count == 0)
 }
 else
 {
-    <table class="table table-striped">
+    <table class="table table-striped documents-table">
         <thead>
             <tr>
                 <th>Название</th>
@@ -45,12 +45,6 @@ else
     </table>
 }
 
-@if (editorVisible)
-{
-    <h4>Редактор OnlyOffice: @currentFile</h4>
-    <div id="editor" style="height:800px; border:1px solid #ccc;"></div>
-}
-
 @if (!string.IsNullOrEmpty(errorMessage))
 {
     <div class="alert alert-danger mt-3">@errorMessage</div>
@@ -60,8 +54,6 @@ else
     private List<string> files = new();
     private string? newFileName;
     private string? userId;
-    private bool editorVisible = false;
-    private string? currentFile;
     private bool loading = true;
     private string? errorMessage;
 
@@ -145,37 +137,18 @@ else
     {
         try
         {
-            var editorConfig = await HttpClient.GetFromJsonAsync<EditorConfig>($"api/storage/editor-config?userId={userId}&fileName={file}");
-            if (editorConfig == null) throw new Exception("Не удалось получить конфиг OnlyOffice");
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                NavigationManager.NavigateTo("/");
+                return;
+            }
 
-            currentFile = file;
-            editorVisible = true;
-            StateHasChanged();
-
-            await JS.InvokeVoidAsync("openEditor", editorConfig);
+            var url = $"/editor?userId={Uri.EscapeDataString(userId)}&fileName={Uri.EscapeDataString(file)}";
+            await JS.InvokeVoidAsync("openDocumentEditor", url);
         }
         catch (Exception ex)
         {
             errorMessage = $"Ошибка открытия редактора: {ex.Message}";
         }
-    }
-
-    public class EditorConfig
-    {
-        public DocumentInfo document { get; set; } = new();
-        public EditorInfo editorConfig { get; set; } = new();
-    }
-
-    public class DocumentInfo
-    {
-        public string fileType { get; set; } = "";
-        public string key { get; set; } = "";
-        public string title { get; set; } = "";
-        public string url { get; set; } = "";
-    }
-
-    public class EditorInfo
-    {
-        public string callbackUrl { get; set; } = "";
     }
 }

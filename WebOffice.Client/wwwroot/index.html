@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebOffice</title>
     <base href="/" />
+    <link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
 </head>
 
@@ -19,6 +20,10 @@
     <script type="text/javascript" src="http://localhost:8080/web-apps/apps/api/documents/api.js"></script>
 
     <script>
+        window.openDocumentEditor = function (url) {
+            window.open(url, "_blank", "noopener,noreferrer");
+        };
+
         // Глобальная функция, которую вызывает Blazor
         window.openEditor = function (config) {
             if (!window.DocsAPI) {
@@ -28,14 +33,9 @@
 
             new DocsAPI.DocEditor("editor", {
                 document: config.document,
-                editorConfig: {
-                    ...config.editorConfig,
-                    mode: "edit",
-                    user: {
-                        id: "user123",
-                        name: "Текущий пользователь"
-                    }
-                },
+                documentType: config.documentType || "word",
+                editorConfig: config.editorConfig,
+                token: config.token,
                 height: "800px"
             });
         };
