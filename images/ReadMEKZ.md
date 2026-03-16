@@ -24,6 +24,7 @@ WOPI арқылы OnlyOffice интеграциясымен онлайн кең�
 
    # Nginx
    NGINX_PORT=80
+
 3. Бэкендті іске қосыңыз: cd WebOffice.Api && dotnet run.
 
 4. Frontend-ті іске қосыңыз: cd ../WebOffice.Client && dotnet run.
