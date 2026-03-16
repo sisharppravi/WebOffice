@@ -41,15 +41,6 @@ docker compose up
 
 Создайте новый документ и отредактируйте его, чтобы убедиться, что интеграция с OnlyOffice работает корректно.
 
-
-![img.png](img.png)
-
-## Версии образов
-
-1. MinIO: **RELEASE.2024-02-17T01-15-57Z**
-2. OnlyOffie: **8.0.1**
-3. Nginx: **1.27.0**
-
 ![img_2.png](img_2.png)
 ![img_3.png](img_3.png)
 
