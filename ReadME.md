@@ -37,12 +37,12 @@ NGINX_PORT=80
 Откройте в браузере `http://localhost`
 
 Зарегистрируйте нового пользователя и войдите в систему
-<img src="images/registration.png" alt="Регистрация">
-<img src="images/login.png" alt="Вход">
+<img src="images/img.png" alt="Регистрация">
+<img src="images/img_1.png" alt="Вход">
 
 Создайте новый документ и отредактируйте его, чтобы убедиться, что интеграция с OnlyOffice работает корректно
-<img src="images/create-document.png" alt="Создание документа">
-<img src="images/onlyoffice-editor.png" alt="Редактирование в OnlyOffice">
+<img src="images/img_2.png" alt="Создание документа">
+<img src="images/img_3.png" alt="Редактирование в OnlyOffice">
 </details>
 
 # Использованные технологии
@@ -122,11 +122,11 @@ NGINX_PORT=80
 5. Инфрақұрылымды іске қосыңыз (MinIO + OnlyOffice + Nginx): docker compose up
 Шолғышта http://localhost мекенжайын ашыңыз
    Жаңа пайдаланушыны тіркеп, жүйеге кіріңіз
-   <img src="images/registration.png" alt="Тіркелу">
-   <img src="images/login.png" alt="Кіру">
+   <img src="images/img.png" alt="Тіркелу">
+   <img src="images/img_1.png" alt="Кіру">
    Жаңа құжат жасап, OnlyOffice-пен интеграцияның дұрыс жұмыс істеп тұрғанына көз жеткізу үшін оны өңдеңіз
-   <img src="images/create-document.png" alt="Құжат жасау">
-   <img src="images/onlyoffice-editor.png" alt="OnlyOffice-та өңдеу">
+   <img src="images/img_2.png" alt="Құжат жасау">
+   <img src="images/img_3.png" alt="OnlyOffice-та өңдеу">
 
 </details>
 
