@@ -7,27 +7,11 @@
 # Docker init
 
 <details>
-   
+
 ## Быстрый старт для разработки
-   
-1. Установить Docker
-2. Клонировать репозиторий
-3. Запустить сервисы: `docker compose up` (MinIO, OnlyOffice и Nginx запустятся автоматически).
-4. Запустить backend: `cd WebOffice.Api && dotnet run`.
-5. Запустить frontend: `cd ../WebOffice.Client && dotnet run`.
-6. Доступ:
-   - MinIO console: http://localhost:9001 (admin/admin123).
-   - OnlyOffice: http://localhost:8080.
-   - Приложение: http://localhost (через Nginx).
-7. Остановка: `docker compose down`.
+1.Клонируйте репозиторий git clone https://github.com/sisharppravi/WebOffice.git
 
-## Версии образов ( Прописаны в docker-compose.yaml ) 
-
-1. MinIO: **RELEASE.2024-02-17T01-15-57Z**
-2. OnlyOffie: **8.0.1**
-3. Nginx: **1.27.0**
-
-## Содержание .env файла
+2.скопируйте .env файл
 
       # MinIO
       MINIO_ROOT_USER=admin
@@ -39,6 +23,24 @@
       
       # Nginx 
       NGINX_PORT=80
+3.Запустить backend: cd WebOffice.Api && dotnet run.
+
+4.Запустить frontend: cd ../WebOffice.Client && dotnet run.
+
+5.Запустите инфраструктуру (MinIO + OnlyOffice + Nginx)
+docker compose up
+
+Откройте в браузере http://localhost
+
+Зарегистрируйте нового пользователя и войдите в систему
+
+![img.png](img.png)
+
+## Версии образов
+
+1. MinIO: **RELEASE.2024-02-17T01-15-57Z**
+2. OnlyOffie: **8.0.1**
+3. Nginx: **1.27.0**
 
 </details>
 
